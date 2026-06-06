@@ -39,14 +39,39 @@ jobs:
           TAURI_BUNDLE_CREATE_UPDATER_ARTIFACTS: "false"
         run: pnpm tauri build --target universal-apple-darwin --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
+      - name: Collect app bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p manual-artifacts
+          find src-tauri/target -path "*/release/bundle/*" \( \
+            -name "*.app" -o \
+            -name "*.dmg" -o \
+            -name "*.zip" -o \
+            -name "*.tar.gz" \
+          \) -print
+          while IFS= read -r path; do
+            name=$(basename "$path")
+            if [ -d "$path" ]; then
+              ditto -c -k --sequesterRsrc --keepParent "$path" "manual-artifacts/${name}.zip"
+            else
+              cp "$path" "manual-artifacts/$name"
+            fi
+          done < <(find src-tauri/target -path "*/release/bundle/*" \( \
+            -name "*.app" -o \
+            -name "*.dmg" -o \
+            -name "*.zip" -o \
+            -name "*.tar.gz" \
+          \))
+          ls -la manual-artifacts
+          test "$(find manual-artifacts -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')" -gt 0
+
       - name: Upload app bundles
         uses: actions/upload-artifact@v7
         with:
           name: cc-switch-macos-unsigned
-          path: |
-            src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app
-            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
-          if-no-files-found: warn
+          path: manual-artifacts/*
+          if-no-files-found: error
 
   build-linux:
     name: Linux checks
