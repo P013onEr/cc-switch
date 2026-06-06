@@ -679,6 +679,20 @@ pub async fn handle_responses_compact(
         .get("stream")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
+
+    if !super::providers::supports_codex_responses_compact(&ctx.provider) {
+        let err = ProxyError::InvalidRequest(format!(
+            concat!(
+                "Provider '{}' is configured as not supporting Codex remote compaction ",
+                "(/responses/compact). Disable remote compaction for this Codex provider, ",
+                "or use a provider that implements the OpenAI Responses compact endpoint."
+            ),
+            ctx.provider.name
+        ));
+        log_forward_error(&state, &ctx, is_stream, &err);
+        return build_codex_proxy_error_response(&ctx, &endpoint, &err);
+    }
+
     let codex_tool_context = transform_codex_chat::build_codex_tool_context_from_request(&body);
 
     let forwarder = ctx.create_forwarder(&state);

@@ -49,4 +49,19 @@ model = "gpt-5"
     expect(setCodexRemoteCompaction(input, true, "OpenAI")).toBe(input);
     expect(isCodexRemoteCompactionEnabled(input)).toBe(false);
   });
+
+  it("keeps remote compaction disabled when the caller refuses enablement", () => {
+    const input = `model_provider = "custom"
+
+[model_providers.custom]
+name = "LeafyAPI"
+base_url = "https://www.codex2api.com/v1"
+wire_api = "responses"
+`;
+
+    const result = setCodexRemoteCompaction(input, false, "LeafyAPI");
+
+    expect(isCodexRemoteCompactionEnabled(result)).toBe(false);
+    expect(result).toContain(`name = "LeafyAPI"`);
+  });
 });
