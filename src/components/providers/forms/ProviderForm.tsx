@@ -58,6 +58,7 @@ import {
   extractCodexWireApi,
   setCodexWireApi,
   setCodexModelName as setCodexModelNameInConfig,
+  setCodexRemoteCompaction,
 } from "@/utils/providerConfigUtils";
 import { isNonNegativeDecimalString } from "@/types/usage";
 import { getCodexCustomTemplate } from "@/config/codexTemplates";
@@ -286,6 +287,7 @@ function ProviderFormFull({
     isPartner?: boolean;
     partnerPromotionKey?: string;
     suggestedDefaults?: OpenClawSuggestedDefaults;
+    supportsResponsesCompact?: boolean;
   } | null>(null);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = useState(false);
   const [isCodexEndpointModalOpen, setIsCodexEndpointModalOpen] =
@@ -1182,10 +1184,22 @@ function ProviderFormFull({
     if (appId === "codex") {
       try {
         const authJson = JSON.parse(codexAuth);
+        const codexSupportsResponsesCompact =
+          localCodexApiFormat === "openai_chat" ||
+          (activePreset?.supportsResponsesCompact ??
+            initialData?.meta?.supportsResponsesCompact ??
+            false);
         let normalizedCodexConfig =
           category !== "official" && (codexConfig ?? "").trim()
             ? setCodexWireApi(codexConfig ?? "", "responses")
             : (codexConfig ?? "");
+        if (category !== "official" && !codexSupportsResponsesCompact) {
+          normalizedCodexConfig = setCodexRemoteCompaction(
+            normalizedCodexConfig,
+            false,
+            values.name,
+          );
+        }
         const normalizedCatalogModels =
           category !== "official" && localCodexApiFormat === "openai_chat"
             ? normalizeCodexCatalogModelsForSave(codexCatalogModels)
@@ -1386,6 +1400,11 @@ function ProviderFormFull({
         localCodexApiFormat === "openai_chat"
           ? normalizeCodexChatReasoningForSave(codexChatReasoning)
           : undefined,
+      supportsResponsesCompact:
+        appId === "codex" && category !== "official"
+          ? (activePreset?.supportsResponsesCompact ??
+            initialData?.meta?.supportsResponsesCompact)
+          : undefined,
       testConfig: testConfig.enabled ? testConfig : undefined,
       costMultiplier: pricingConfig.enabled
         ? pricingConfig.costMultiplier
@@ -1556,6 +1575,10 @@ function ProviderFormFull({
       category: entry.preset.category,
       isPartner: entry.preset.isPartner,
       partnerPromotionKey: entry.preset.partnerPromotionKey,
+      supportsResponsesCompact:
+        appId === "codex"
+          ? (entry.preset as CodexProviderPreset).supportsResponsesCompact
+          : undefined,
     });
 
     if (appId === "codex") {
@@ -2167,6 +2190,12 @@ function ProviderFormFull({
                 configValue={codexConfig}
                 providerName={form.watch("name")}
                 showRemoteCompaction={category !== "official"}
+                supportsResponsesCompact={
+                  localCodexApiFormat === "openai_chat" ||
+                  (activePreset?.supportsResponsesCompact ??
+                    initialData?.meta?.supportsResponsesCompact ??
+                    false)
+                }
                 isProxyTakeover={isProxyTakeover}
                 onAuthChange={setCodexAuth}
                 onConfigChange={handleCodexConfigChange}

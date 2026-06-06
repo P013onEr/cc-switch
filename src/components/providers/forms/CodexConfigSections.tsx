@@ -108,6 +108,7 @@ interface CodexConfigSectionProps {
   onChange: (value: string) => void;
   providerName?: string;
   showRemoteCompaction?: boolean;
+  supportsResponsesCompact?: boolean;
   useCommonConfig: boolean;
   onCommonConfigToggle: (checked: boolean) => void;
   onEditCommonConfig: () => void;
@@ -124,6 +125,7 @@ export const CodexConfigSection: React.FC<CodexConfigSectionProps> = ({
   onChange,
   providerName,
   showRemoteCompaction = true,
+  supportsResponsesCompact = true,
   useCommonConfig,
   onCommonConfigToggle,
   onEditCommonConfig,
@@ -175,6 +177,8 @@ export const CodexConfigSection: React.FC<CodexConfigSectionProps> = ({
     () => isCodexRemoteCompactionEnabled(localValue),
     [localValue],
   );
+  const canUseRemoteCompaction =
+    showRemoteCompaction && supportsResponsesCompact;
 
   const handleGoalModeToggle = useCallback(
     (checked: boolean) => {
@@ -288,7 +292,7 @@ export const CodexConfigSection: React.FC<CodexConfigSectionProps> = ({
             {t("codexConfig.enableGoalMode")}
           </label>
 
-          {showRemoteCompaction && (
+          {canUseRemoteCompaction && (
             <label
               className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
               title={t("codexConfig.remoteCompactionHint")}
