@@ -35,6 +35,8 @@ export interface CodexProviderPreset {
   modelCatalog?: CodexCatalogModel[];
   // Codex Responses -> Chat Completions reasoning capability defaults
   codexChatReasoning?: CodexChatReasoning;
+  // Whether the upstream implements Codex's /responses/compact endpoint
+  supportsResponsesCompact?: boolean;
 }
 
 /**
@@ -868,6 +870,7 @@ requires_openai_auth = true`,
       "https://slb.apikey.fun/v1",
     ],
     apiFormat: "openai_responses",
+    supportsResponsesCompact: false,
     isPartner: true,
     partnerPromotionKey: "apikeyfun",
     icon: "apikeyfun",
@@ -891,6 +894,7 @@ wire_api = "responses"
 requires_openai_auth = true`,
     endpointCandidates: ["https://apinebula.com/v1"],
     apiFormat: "openai_responses",
+    supportsResponsesCompact: false,
     isPartner: true,
     partnerPromotionKey: "apinebula",
     icon: "apinebula",
@@ -939,6 +943,7 @@ wire_api = "responses"
 requires_openai_auth = true`,
     endpointCandidates: ["https://sudocode.us/v1", "https://sudocode.run/v1"],
     apiFormat: "openai_responses",
+    supportsResponsesCompact: false,
     isPartner: true,
     partnerPromotionKey: "sudocode",
     icon: "sudocode",

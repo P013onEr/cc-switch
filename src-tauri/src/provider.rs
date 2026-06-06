@@ -464,6 +464,15 @@ pub struct ProviderMeta {
     /// Codex Responses -> Chat Completions reasoning capability metadata.
     #[serde(rename = "codexChatReasoning", skip_serializing_if = "Option::is_none")]
     pub codex_chat_reasoning: Option<CodexChatReasoningConfig>,
+    /// Whether the upstream supports Codex's `/responses/compact` endpoint.
+    /// Leave unset to let the Codex adapter infer support from the provider
+    /// format; set explicitly for providers that are known to support or reject
+    /// remote compaction.
+    #[serde(
+        rename = "supportsResponsesCompact",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_responses_compact: Option<bool>,
     /// 累加模式应用中，该 provider 是否已写入 live config。
     /// `None` 表示旧数据/未知状态，`Some(false)` 表示明确仅存在于数据库中。
     #[serde(rename = "liveConfigManaged", skip_serializing_if = "Option::is_none")]

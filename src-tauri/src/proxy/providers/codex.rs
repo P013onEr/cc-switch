@@ -84,6 +84,18 @@ pub fn should_convert_codex_responses_to_chat(provider: &Provider, endpoint: &st
     ) && codex_provider_uses_chat_completions(provider)
 }
 
+pub fn supports_codex_responses_compact(provider: &Provider) -> bool {
+    if let Some(explicit) = provider
+        .meta
+        .as_ref()
+        .and_then(|meta| meta.supports_responses_compact)
+    {
+        return explicit;
+    }
+
+    codex_provider_uses_chat_completions(provider)
+}
+
 /// Extract the real upstream model configured for a Codex provider.
 pub fn codex_provider_upstream_model(provider: &Provider) -> Option<String> {
     provider
@@ -785,6 +797,54 @@ wire_api = "chat"
             &provider,
             "/v1/responses"
         ));
+    }
+
+    #[test]
+    fn test_supports_codex_responses_compact_defaults_to_false_for_responses_passthrough() {
+        let provider = create_provider(json!({
+            "base_url": "https://example.com/v1"
+        }));
+
+        assert!(!supports_codex_responses_compact(&provider));
+    }
+
+    #[test]
+    fn test_supports_codex_responses_compact_defaults_to_true_for_chat_conversion() {
+        let mut provider = create_provider(json!({
+            "base_url": "https://example.com/v1"
+        }));
+        provider.meta = Some(crate::provider::ProviderMeta {
+            api_format: Some("openai_chat".to_string()),
+            ..Default::default()
+        });
+
+        assert!(supports_codex_responses_compact(&provider));
+    }
+
+    #[test]
+    fn test_supports_codex_responses_compact_can_be_enabled() {
+        let mut provider = create_provider(json!({
+            "base_url": "https://example.com/v1"
+        }));
+        provider.meta = Some(crate::provider::ProviderMeta {
+            supports_responses_compact: Some(true),
+            ..Default::default()
+        });
+
+        assert!(supports_codex_responses_compact(&provider));
+    }
+
+    #[test]
+    fn test_supports_codex_responses_compact_can_be_disabled() {
+        let mut provider = create_provider(json!({
+            "base_url": "https://example.com/v1"
+        }));
+        provider.meta = Some(crate::provider::ProviderMeta {
+            supports_responses_compact: Some(false),
+            ..Default::default()
+        });
+
+        assert!(!supports_codex_responses_compact(&provider));
     }
 
     #[test]
