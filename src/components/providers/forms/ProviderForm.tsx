@@ -22,6 +22,7 @@ import type {
   CodexApiFormat,
   CodexCatalogModel,
   CodexChatReasoning,
+  CodexImageGenerationMode,
   ClaudeApiKeyField,
 } from "@/types";
 import {
@@ -131,6 +132,19 @@ type PresetEntry = {
     | OpenClawProviderPreset
     | HermesProviderPreset;
 };
+
+function resolveCodexImageGenerationMode(
+  meta: ProviderMeta | undefined,
+  category: ProviderCategory | undefined,
+): CodexImageGenerationMode {
+  if (meta?.codexImageGenerationMode) {
+    return meta.codexImageGenerationMode;
+  }
+  if (meta?.supportsImageGeneration !== undefined) {
+    return meta.supportsImageGeneration ? "enabled" : "disabled";
+  }
+  return String(category) === "official" ? "enabled" : "disabled";
+}
 
 export const normalizeCodexCatalogModelsForSave = (
   models: CodexCatalogModel[],
@@ -292,6 +306,8 @@ function ProviderFormFull({
     isPartner?: boolean;
     partnerPromotionKey?: string;
     suggestedDefaults?: OpenClawSuggestedDefaults;
+    supportsImageGeneration?: boolean;
+    codexImageGenerationMode?: CodexImageGenerationMode;
   } | null>(null);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = useState(false);
   const [isCodexEndpointModalOpen, setIsCodexEndpointModalOpen] =
@@ -361,6 +377,14 @@ function ProviderFormFull({
       ),
     });
     setCodexChatReasoning(initialData?.meta?.codexChatReasoning ?? {});
+    setCodexImageGenerationMode(
+      appId === "codex"
+        ? resolveCodexImageGenerationMode(
+            initialData?.meta,
+            initialData?.category,
+          )
+        : "disabled",
+    );
     setCustomUserAgent(initialData?.meta?.customUserAgent ?? "");
     setLocalProxyHeadersOverride(
       formatRequestOverrideObject(
@@ -532,6 +556,15 @@ function ProviderFormFull({
   const [codexChatReasoning, setCodexChatReasoning] =
     useState<CodexChatReasoning>(
       () => initialData?.meta?.codexChatReasoning ?? {},
+    );
+  const [codexImageGenerationMode, setCodexImageGenerationMode] =
+    useState<CodexImageGenerationMode>(() =>
+      appId === "codex"
+        ? resolveCodexImageGenerationMode(
+            initialData?.meta,
+            initialData?.category,
+          )
+        : "disabled",
     );
   const [customUserAgent, setCustomUserAgent] = useState<string>(
     () => initialData?.meta?.customUserAgent ?? "",
@@ -1482,6 +1515,10 @@ function ProviderFormFull({
         localCodexApiFormat === "openai_chat"
           ? normalizeCodexChatReasoningForSave(codexChatReasoning)
           : undefined,
+      supportsImageGeneration:
+        appId === "codex" ? codexImageGenerationMode !== "disabled" : undefined,
+      codexImageGenerationMode:
+        appId === "codex" ? codexImageGenerationMode : undefined,
       customUserAgent:
         (appId === "claude" || appId === "codex") && category !== "official"
           ? customUserAgent.trim() || undefined
@@ -1649,6 +1686,7 @@ function ProviderFormFull({
         const template = getCodexCustomTemplate();
         resetCodexConfig(template.auth, template.config);
         setCodexChatReasoning({});
+        setCodexImageGenerationMode("disabled");
         setLocalCodexApiFormat(
           codexApiFormatFromWireApi(extractCodexWireApi(template.config)) ??
             "openai_responses",
@@ -1681,6 +1719,14 @@ function ProviderFormFull({
       category: entry.preset.category,
       isPartner: entry.preset.isPartner,
       partnerPromotionKey: entry.preset.partnerPromotionKey,
+      supportsImageGeneration:
+        appId === "codex"
+          ? (entry.preset as CodexProviderPreset).supportsImageGeneration
+          : undefined,
+      codexImageGenerationMode:
+        appId === "codex"
+          ? (entry.preset as CodexProviderPreset).codexImageGenerationMode
+          : undefined,
     });
 
     if (appId === "codex") {
@@ -1690,6 +1736,12 @@ function ProviderFormFull({
 
       resetCodexConfig(auth, config, preset.modelCatalog ?? []);
       setCodexChatReasoning(preset.codexChatReasoning ?? {});
+      setCodexImageGenerationMode(
+        preset.codexImageGenerationMode ??
+          ((preset.supportsImageGeneration ?? preset.isOfficial === true)
+            ? "enabled"
+            : "disabled"),
+      );
       setLocalCodexApiFormat(
         preset.apiFormat ??
           codexApiFormatFromWireApi(extractCodexWireApi(config)) ??
@@ -2178,6 +2230,8 @@ function ProviderFormFull({
               onMaxOutputTokensChange={setLocalCodexMaxOutputTokens}
               codexChatReasoning={codexChatReasoning}
               onCodexChatReasoningChange={setCodexChatReasoning}
+              imageGenerationMode={codexImageGenerationMode}
+              onImageGenerationModeChange={setCodexImageGenerationMode}
               catalogModels={codexCatalogModels}
               onCatalogModelsChange={setCodexCatalogModels}
               speedTestEndpoints={speedTestEndpoints}

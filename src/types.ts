@@ -173,6 +173,12 @@ export interface CodexChatReasoning {
   outputFormat?: CodexChatReasoningOutputFormat;
 }
 
+export type CodexImageGenerationMode =
+  | "enabled"
+  | "disabled"
+  | "chat"
+  | "passthrough";
+
 export interface LocalProxyRequestOverrides {
   headers?: Record<string, string>;
   body?: Record<string, unknown>;
@@ -232,6 +238,10 @@ export interface ProviderMeta {
   // long/thinking-heavy responses. When set (>0) it takes precedence over the
   // request value and the default.
   maxOutputTokens?: number;
+  // Whether the upstream provider/group allows Codex image generation
+  supportsImageGeneration?: boolean;
+  // Codex image_generation handling mode. Overrides supportsImageGeneration when set.
+  codexImageGenerationMode?: CodexImageGenerationMode;
   // Custom User-Agent for local proxy routing. Only applied by the local proxy.
   customUserAgent?: string;
   // Local proxy request overrides. Only applied by the local proxy after route transforms.

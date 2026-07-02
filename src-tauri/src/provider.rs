@@ -506,6 +506,25 @@ pub struct ProviderMeta {
     /// models/gateways (and that error is non-retryable).
     #[serde(rename = "maxOutputTokens", skip_serializing_if = "Option::is_none")]
     pub max_output_tokens: Option<u64>,
+    /// Legacy boolean for Codex image generation support.
+    #[serde(
+        rename = "supportsImageGeneration",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_image_generation: Option<bool>,
+    /// Codex image generation handling mode.
+    ///
+    /// Values mirror CLIProxyAPI's disable-image-generation modes:
+    /// - enabled: enable image_generation everywhere
+    /// - disabled: disable image_generation everywhere
+    /// - chat: keep the Codex feature enabled, but strip image_generation from
+    ///   non-image chat endpoints
+    /// - passthrough: keep Codex feature enabled and never strip client payloads
+    #[serde(
+        rename = "codexImageGenerationMode",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub codex_image_generation_mode: Option<String>,
     /// Custom User-Agent for local proxy routing.
     #[serde(rename = "customUserAgent", skip_serializing_if = "Option::is_none")]
     pub custom_user_agent: Option<String>,
@@ -1035,6 +1054,42 @@ mod tests {
     fn provider_meta_omits_max_output_tokens_when_none() {
         let value = serde_json::to_value(ProviderMeta::default()).expect("serialize ProviderMeta");
         assert!(value.get("maxOutputTokens").is_none());
+    }
+
+    #[test]
+    fn provider_meta_serializes_codex_image_generation_support() {
+        let meta = ProviderMeta {
+            supports_image_generation: Some(false),
+            ..ProviderMeta::default()
+        };
+
+        let value = serde_json::to_value(&meta).expect("serialize ProviderMeta");
+
+        assert_eq!(
+            value
+                .get("supportsImageGeneration")
+                .and_then(|item| item.as_bool()),
+            Some(false)
+        );
+        assert!(value.get("supports_image_generation").is_none());
+    }
+
+    #[test]
+    fn provider_meta_serializes_codex_image_generation_mode() {
+        let meta = ProviderMeta {
+            codex_image_generation_mode: Some("chat".to_string()),
+            ..ProviderMeta::default()
+        };
+
+        let value = serde_json::to_value(&meta).expect("serialize ProviderMeta");
+
+        assert_eq!(
+            value
+                .get("codexImageGenerationMode")
+                .and_then(|item| item.as_str()),
+            Some("chat")
+        );
+        assert!(value.get("codex_image_generation_mode").is_none());
     }
 
     #[test]
