@@ -1,0 +1,59 @@
+name: macOS Test Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: Build macOS
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add macOS targets
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.12.3
+          run_install: false
+
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Disable updater artifacts for unsigned test build
+        run: |
+          node -e "const fs=require('fs'); const p='src-tauri/tauri.conf.json'; const c=JSON.parse(fs.readFileSync(p,'utf8')); c.bundle.createUpdaterArtifacts=false; fs.writeFileSync(p, JSON.stringify(c, null, 2) + '\n');"
+
+      - name: Build Tauri App
+        run: pnpm tauri build --target universal-apple-darwin --bundles app,dmg
+
+      - name: Collect macOS artifacts
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p release-assets
+          find src-tauri/target/universal-apple-darwin/release/bundle -type f \
+            \( -name "*.dmg" -o -name "*.zip" -o -name "*.tar.gz" \) \
+            -exec cp {} release-assets/ \;
+          ls -la release-assets
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: cc-switch-macos-test-build
+          path: release-assets/*
+          if-no-files-found: error
